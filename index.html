@@ -8,20 +8,62 @@
     <script type="module" crossorigin src="/Website-Minuman/assets/index-CsknEuT8.js"></script>
     <link rel="stylesheet" crossorigin href="/Website-Minuman/assets/index-BtE7BOnI.css">
   </head>
-  <body>
+  <<body>
   <div id="loader">
       <div class="spinner"></div>
   </div>
   <div id="root"></div>
 
   <script>
-      const loader = document.getElementById('loader');
-      window.addEventListener('load', () => {
-          setTimeout(() => {
-              if (loader) {
-                  loader.classList.add('hidden');
-              }
-          }, 500); // jeda 0.5 detik
+      // Tunggu hingga struktur dasar halaman (DOM) siap
+      document.addEventListener('DOMContentLoaded', () => {
+          const loader = document.getElementById('loader');
+
+          // Ambil semua elemen gambar dan video di halaman
+          const allMedia = Array.from(document.querySelectorAll('img, video'));
+          const promises = [];
+
+          // Jika tidak ada media, langsung sembunyikan loader
+          if (allMedia.length === 0) {
+              hideLoader();
+              return;
+          }
+
+          // Buat "janji" (Promise) untuk setiap aset
+          allMedia.forEach(media => {
+              const promise = new Promise((resolve) => {
+                  if (media.tagName === 'IMG') {
+                      // Untuk gambar, tunggu event 'load'
+                      if (media.complete) {
+                          resolve();
+                      } else {
+                          media.addEventListener('load', resolve, { once: true });
+                          media.addEventListener('error', resolve, { once: true }); // Tetap lanjutkan jika ada gambar error
+                      }
+                  } else if (media.tagName === 'VIDEO') {
+                      // Untuk video, tunggu event 'canplaythrough' (lebih andal)
+                      if (media.readyState >= 4) { // HAVE_ENOUGH_DATA
+                          resolve();
+                      } else {
+                          media.addEventListener('canplaythrough', resolve, { once: true });
+                          media.addEventListener('error', resolve, { once: true }); // Tetap lanjutkan jika ada video error
+                      }
+                  }
+              });
+              promises.push(promise);
+          });
+
+          // Fungsi untuk menyembunyikan loader
+          function hideLoader() {
+              setTimeout(() => {
+                  if (loader) {
+                      loader.classList.add('hidden');
+                  }
+              }, 500);
+          }
+
+          // Tunggu SEMUA janji terpenuhi, baru sembunyikan loader
+          Promise.all(promises).then(hideLoader);
       });
   </script>
   </body>
