@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; // Impor useState dan useEffect
 import { cards } from "../constants/index.js";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -9,12 +9,39 @@ gsap.registerPlugin(ScrollTrigger);
 const TestimonialSection = () => {
     const vdRef = useRef([]);
     const main = useRef();
+    const [playingVideo, setPlayingVideo] = useState(null); // State untuk melacak video
+    const isTouchDevice = 'ontouchstart' in window; // Deteksi perangkat sentuh
+
+    // Efek untuk menghentikan video jika pengguna scroll keluar dari section
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting && playingVideo !== null) {
+                    const video = vdRef.current[playingVideo];
+                    if (video) video.pause();
+                    setPlayingVideo(null);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (main.current) {
+            observer.observe(main.current);
+        }
+
+        return () => {
+            if (main.current) {
+                observer.unobserve(main.current);
+            }
+        };
+    }, [playingVideo]);
+
 
     useGSAP(() => {
         const mm = gsap.matchMedia();
 
         mm.add("(min-width: 768px)", () => {
-            // --- Setup untuk Tablet & Desktop ---
+            // Setup untuk Tablet & Desktop
             gsap.set(main.current, { marginTop: "-140vh" });
 
             const tl = gsap.timeline({
@@ -38,15 +65,14 @@ const TestimonialSection = () => {
         });
 
         mm.add("(max-width: 767px)", () => {
-            // --- Setup untuk Mobile ---
-            // TAMBAHKAN INI: Set margin-top untuk mobile
-            gsap.set(main.current, { marginTop: "-30" }); // Anda bisa sesuaikan nilai "-30vh"
+            // Setup untuk Mobile
+            gsap.set(main.current, { marginTop: "-30vh" }); // Menggunakan -30vh untuk konsistensi
 
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: main.current,
                     start: "top 70%",
-                    end: "70% 80%",
+                    end: "bottom 80%",
                     scrub: 1.5,
                 }
             });
@@ -56,8 +82,6 @@ const TestimonialSection = () => {
                 .from(".third-title", { autoAlpha: 0, x: -50 }, "<")
                 .from(".vd-card", { yPercent: 120, autoAlpha: 0, stagger: 0.5 }, "-=0.5");
 
-            // TAMBAHKAN INI: Cleanup function untuk mobile
-            // Ini penting untuk menghapus marginTop saat beralih ke desktop
             return () => {
                 gsap.set(main.current, { clearProps: "marginTop" });
             };
@@ -66,13 +90,32 @@ const TestimonialSection = () => {
     }, { scope: main });
 
     const handlePlay = (index) => {
-        const video = vdRef.current[index];
-        if (video) video.play();
+        const videoToPlay = vdRef.current[index];
+        if (!videoToPlay) return;
+
+        if (playingVideo !== null && vdRef.current[playingVideo]) {
+            vdRef.current[playingVideo].pause();
+        }
+
+        // Memaksa video untuk memuat datanya sebelum diputar
+        videoToPlay.load();
+        videoToPlay.play();
+        setPlayingVideo(index);
     };
 
-    const handlePause = (index) => {
-        const video = vdRef.current[index];
-        if (video) video.pause();
+    const handlePause = () => {
+        if (playingVideo !== null && vdRef.current[playingVideo]) {
+            vdRef.current[playingVideo].pause();
+        }
+        setPlayingVideo(null);
+    };
+
+    const handleVideoToggle = (index) => {
+        if (playingVideo === index) {
+            handlePause();
+        } else {
+            handlePlay(index);
+        }
     };
 
     return (
@@ -87,9 +130,13 @@ const TestimonialSection = () => {
                 {cards.map((card, index) => (
                     <div
                         key={index}
-                        className={`vd-card ${card.translation || ''} ${card.rotation}`}
-                        onMouseEnter={() => handlePlay(index)}
-                        onMouseLeave={() => handlePause(index)}
+                        className={`vd-card ${card.translation || ''} ${card.rotation} relative cursor-pointer`}
+                        onClick={() => handleVideoToggle(index)}
+                        // Menerapkan event hover HANYA jika bukan perangkat sentuh
+                        {...(!isTouchDevice && {
+                            onMouseEnter: () => handlePlay(index),
+                            onMouseLeave: handlePause,
+                        })}
                     >
                         <video
                             ref={(el) => (vdRef.current[index] = el)}
@@ -97,8 +144,15 @@ const TestimonialSection = () => {
                             playsInline
                             muted
                             loop
+                            preload="auto" // <-- Atribut penting untuk iOS
                             className="size-full object-cover"
                         />
+                        {/* Ikon Play sebagai petunjuk visual */}
+                        {playingVideo !== index && (
+                            <div className="abs-center bg-black/30 backdrop-blur-sm size-16 rounded-full flex-center pointer-events-none">
+                                <img src="images/play.svg" alt="Play" className="w-6 h-6 ml-1" />
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
