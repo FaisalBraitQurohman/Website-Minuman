@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'; // Impor useState dan useEffect
+import React, { useState, useRef, useEffect } from 'react';
 import { cards } from "../constants/index.js";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -9,8 +9,8 @@ gsap.registerPlugin(ScrollTrigger);
 const TestimonialSection = () => {
     const vdRef = useRef([]);
     const main = useRef();
-    const [playingVideo, setPlayingVideo] = useState(null); // State untuk melacak video
-    const isTouchDevice = 'ontouchstart' in window; // Deteksi perangkat sentuh
+    const [playingVideo, setPlayingVideo] = useState(null);
+    const isTouchDevice = 'ontouchstart' in window;
 
     // Efek untuk menghentikan video jika pengguna scroll keluar dari section
     useEffect(() => {
@@ -35,7 +35,6 @@ const TestimonialSection = () => {
             }
         };
     }, [playingVideo]);
-
 
     useGSAP(() => {
         const mm = gsap.matchMedia();
@@ -66,13 +65,13 @@ const TestimonialSection = () => {
 
         mm.add("(max-width: 767px)", () => {
             // Setup untuk Mobile
-            gsap.set(main.current, { marginTop: "-30vh" }); // Menggunakan -30vh untuk konsistensi
+            gsap.set(main.current, { marginTop: "-30vh" });
 
             const tl = gsap.timeline({
                 scrollTrigger: {
                     trigger: main.current,
                     start: "top 70%",
-                    end: "bottom 80%",
+                    end: "70% 80%",
                     scrub: 1.5,
                 }
             });
@@ -97,7 +96,6 @@ const TestimonialSection = () => {
             vdRef.current[playingVideo].pause();
         }
 
-        // Memaksa video untuk memuat datanya sebelum diputar
         videoToPlay.load();
         videoToPlay.play();
         setPlayingVideo(index);
@@ -127,34 +125,37 @@ const TestimonialSection = () => {
             </div>
 
             <div className="pin-box">
-                {cards.map((card, index) => (
-                    <div
-                        key={index}
-                        className={`vd-card ${card.translation || ''} ${card.rotation} relative cursor-pointer`}
-                        onClick={() => handleVideoToggle(index)}
-                        // Menerapkan event hover HANYA jika bukan perangkat sentuh
-                        {...(!isTouchDevice && {
-                            onMouseEnter: () => handlePlay(index),
-                            onMouseLeave: handlePause,
-                        })}
-                    >
-                        <video
-                            ref={(el) => (vdRef.current[index] = el)}
-                            src={card.src}
-                            playsInline
-                            muted
-                            loop
-                            preload="auto" // <-- Atribut penting untuk iOS
-                            className="size-full object-cover"
-                        />
-                        {/* Ikon Play sebagai petunjuk visual */}
-                        {playingVideo !== index && (
-                            <div className="abs-center bg-black/30 backdrop-blur-sm size-16 rounded-full flex-center pointer-events-none">
-                                <img src="images/play.svg" alt="Play" className="w-6 h-6 ml-1" />
-                            </div>
-                        )}
-                    </div>
-                ))}
+                {cards.map((card, index) => {
+                    const isPlayableOnMobile = index === cards.length - 1;
+                    const isInteractive = !isTouchDevice || isPlayableOnMobile;
+
+                    return (
+                        <div
+                            key={index}
+                            className={`vd-card ${card.translation || ''} ${card.rotation} ${isInteractive ? 'cursor-pointer' : 'pointer-events-none lg:pointer-events-auto'}`}
+                            onClick={isInteractive ? () => handleVideoToggle(index) : undefined}
+                            {...(!isTouchDevice && {
+                                onMouseEnter: () => handlePlay(index),
+                                onMouseLeave: handlePause,
+                            })}
+                        >
+                            <video
+                                ref={(el) => (vdRef.current[index] = el)}
+                                src={card.src}
+                                playsInline
+                                muted
+                                loop
+                                preload="auto"
+                                className="size-full object-cover"
+                            />
+                            {playingVideo !== index && isInteractive && (
+                                <div className="abs-center bg-black/30 backdrop-blur-sm size-16 rounded-full flex-center pointer-events-none">
+                                    <img src="images/play.svg" alt="Play" className="w-6 h-6 ml-1" />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </section>
     );
