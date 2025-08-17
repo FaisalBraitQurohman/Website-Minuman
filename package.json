@@ -20,7 +20,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-responsive": "^10.0.1",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
